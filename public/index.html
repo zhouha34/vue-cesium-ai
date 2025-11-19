@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Cesium Map</title>
+    
+    <!-- 使用本地 Cesium -->
+    <link href="<%= BASE_URL %>cesium/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  </head>
+  <body>
+    <noscript>
+      <strong>请启用JavaScript以运行此应用程序。</strong>
+    </noscript>
+    <div id="app"></div>
+    
+    <!-- 使用本地 Cesium -->
+    <script src="<%= BASE_URL %>cesium/Build/Cesium/Cesium.js"></script>
+    <script>
+      window.CESIUM_BASE_URL = "<%= BASE_URL %>cesium/Build/Cesium/";
+    </script>
+  </body>
+</html>
