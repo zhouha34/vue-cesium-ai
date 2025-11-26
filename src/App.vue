@@ -3,42 +3,53 @@
     <!-- Cesium 地图显示容器 -->
     <div id="cesiumContainer" style="width: 100%; height: 100vh;"></div>
 
-    <!-- 固定在左下角的聊天窗口 -->
+    <!-- 聊天窗口 - 固定在左下角 -->
     <div class="chat-window">
       <!-- 聊天标题栏 -->
       <div class="chat-header">
         <h3>AI 地图助手</h3>
+        <button class="toggle-btn" @click="toggleChatWindow">
+          {{ chatWindowOpen ? '−' : '+' }}
+        </button>
       </div>
 
-      <!-- 消息显示区域（可滚动） -->
-      <div class="messages-container">
-        <div 
-          v-for="(msg, index) in messages" 
-          :key="index" 
-          class="message" 
-          :class="msg.role"
-        >
-          <div class="message-content">
-            <strong>{{ msg.role === 'user' ? '你' : 'AI' }}:</strong> {{ msg.content }}
+      <!-- 聊天内容区域（可折叠） -->
+      <div v-if="chatWindowOpen" class="chat-content">
+        <!-- 消息显示区域（可滚动） -->
+        <div class="messages-container" ref="messagesContainer">
+          <div 
+            v-for="(msg, index) in messages" 
+            :key="index" 
+            class="message" 
+            :class="msg.role"
+          >
+            <div class="message-avatar">
+              {{ msg.role === 'user' ? '你' : 'AI' }}
+            </div>
+            <div class="message-content">
+              {{ msg.content }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 输入区域 -->
-      <div class="input-area">
-        <input 
-          v-model="userMessage" 
-          placeholder="输入消息" 
-          @keyup.enter="sendMessage"
-          class="chat-input"
-        />
-        <button 
-          @click="sendMessage" 
-          :disabled="loading"
-          class="send-btn"
-        >
-          {{ loading ? '发送中...' : '发送' }}
-        </button>
+        <!-- 输入区域 -->
+        <div class="input-area">
+          <div class="input-group">
+            <input 
+              v-model="userMessage" 
+              placeholder="询问关于地图的问题..." 
+              @keyup.enter="sendMessage"
+              class="chat-input"
+            />
+            <button 
+              @click="sendMessage" 
+              :disabled="loading" 
+              class="send-btn"
+            >
+              {{ loading ? '...' : '发送' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -51,10 +62,10 @@ export default {
   name: 'App',
   data() {
     return {
-      userMessage: '',  // 用户输入的消息
-      aiReply: '',      // AI 回复的消息
-      messages: [],     // 对话历史
-      loading: false    // 加载状态
+      userMessage: '',      // 用户输入的消息
+      messages: [],         // 对话历史
+      loading: false,       // 加载状态
+      chatWindowOpen: true  // 聊天窗口展开状态
     };
   },
   mounted() {
@@ -66,6 +77,17 @@ export default {
         console.error('Cesium 未加载');
       }
     }, 100);
+  },
+  watch: {
+    // 当消息更新时自动滚动到底部
+    messages: {
+      handler() {
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
+      },
+      deep: true
+    }
   },
   methods: {
     initCesium() {
@@ -100,28 +122,36 @@ export default {
       
       try {
         const response = await axios.post('/api/chat', {
-          messages: this.messages  // 发送完整的对话历史
+          messages: this.messages
         });
 
         console.log('API响应:', response.data);
         
-        // 从正确的位置获取AI回复
         if (response.data.choices && response.data.choices.length > 0) {
           const aiReply = response.data.choices[0].message.content;
-          this.aiReply = aiReply;
-          // 添加到消息历史
           this.messages.push({ role: 'assistant', content: aiReply });
         } else {
-          this.aiReply = '没有得到有效的回复。';
           this.messages.push({ role: 'assistant', content: '没有得到有效的回复。' });
         }
       } catch (error) {
         console.error('Error:', error);
-        this.aiReply = '发生错误，请稍后再试。';
         this.messages.push({ role: 'assistant', content: '发生错误，请稍后再试。' });
       } finally {
         this.loading = false;
       }
+    },
+
+    // 滚动到消息容器底部
+    scrollToBottom() {
+      const container = this.$refs.messagesContainer;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    },
+
+    // 切换聊天窗口展开/收起
+    toggleChatWindow() {
+      this.chatWindowOpen = !this.chatWindowOpen;
     }
   }
 };
@@ -146,30 +176,29 @@ html, body, #app {
   height: 100%;
 }
 
-/* 聊天窗口样式 - 固定在左下角 */
+/* 聊天窗口样式 */
 .chat-window {
   position: absolute;
   bottom: 20px;
   left: 20px;
   width: 380px;
-  height: 480px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
 /* 聊天标题栏 */
 .chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  flex-shrink: 0;
 }
 
 .chat-header h3 {
@@ -178,11 +207,38 @@ html, body, #app {
   font-weight: 600;
 }
 
+.toggle-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 聊天内容区域 */
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
 /* 消息容器（可滚动） */
 .messages-container {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  max-height: 320px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e0 transparent;
 }
@@ -206,25 +262,51 @@ html, body, #app {
 
 /* 消息样式 */
 .message {
-  margin-bottom: 12px;
+  display: flex;
+  margin-bottom: 16px;
   animation: fadeIn 0.3s ease-in;
 }
 
+.message.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+.message.user .message-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.message.assistant .message-avatar {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
 .message-content {
+  max-width: 260px;
   padding: 10px 14px;
   border-radius: 18px;
   font-size: 13px;
   line-height: 1.4;
   word-wrap: break-word;
-  max-width: 100%;
 }
 
 .message.user .message-content {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-bottom-right-radius: 4px;
-  margin-left: 40px;
-  text-align: right;
 }
 
 .message.assistant .message-content {
@@ -232,7 +314,6 @@ html, body, #app {
   color: #2d3748;
   border: 1px solid #e2e8f0;
   border-bottom-left-radius: 4px;
-  margin-right: 40px;
 }
 
 /* 输入区域 */
@@ -240,7 +321,9 @@ html, body, #app {
   padding: 16px;
   border-top: 1px solid #e2e8f0;
   background: #fafafa;
-  flex-shrink: 0;
+}
+
+.input-group {
   display: flex;
   gap: 8px;
 }
@@ -302,6 +385,10 @@ html, body, #app {
     width: calc(100% - 40px);
     left: 20px;
     right: 20px;
+  }
+  
+  .message-content {
+    max-width: 200px;
   }
 }
 </style>
