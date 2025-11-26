@@ -20,7 +20,7 @@ module.exports = {
   devServer: {
     proxy: {
       '/api': {
-        target: 'https://vuecesium-5scs0pb4z-ha-zhous-projects.vercel.app',
+        target: 'https://vue-cesium-ai.vercel.app',
         changeOrigin: true,
         // 移除 pathRewrite，让 /api/chat 直接代理到目标地址的 /api/chat
         secure: false,

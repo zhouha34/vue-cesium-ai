@@ -7,7 +7,7 @@
     <div class="chat-window">
       <!-- 聊天标题栏 -->
       <div class="chat-header">
-        <h3>AI 地图助手</h3>
+        <h3>尾矿库溃坝影响大语言模型</h3>
         <button class="toggle-btn" @click="toggleChatWindow">
           {{ chatWindowOpen ? '−' : '+' }}
         </button>
@@ -121,6 +121,7 @@ export default {
       this.messages.push({ role: 'user', content: userMessage });
       
       try {
+        // 改回使用相对路径
         const response = await axios.post('/api/chat', {
           messages: this.messages
         });
